@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pi Speed Dash | Play to Earn Coming Soon!</title>
+    <meta name="pi-app" content="true">
+    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+    <style>
+        :root {
+            --pi-primary: #e94560;
+            --pi-secondary: #2d4263;
+        }
+        body { 
+            background: #1a1a2e; 
+            color: #fff; 
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        #gameCanvas {
+            border: 3px solid var(--pi-primary);
+            border-radius: 10px;
+            margin: 20px auto;
+        }
+        .pi-powerup {
+            background: var(--pi-secondary);
+            padding: 12px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .pi-powerup:hover {
+            transform: scale(1.05);
+        }
+        #pi-teaser {
+            background: #e9456020;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            border: 2px dashed var(--pi-primary);
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Pi Speed Dash</h1>
+    <div id="pi-score">Score: 0</div>
+    <canvas id="gameCanvas" width="300" height="500"></canvas>
+    
+    <div id="pi-store">
+        <div class="pi-powerup" onclick="buyPowerup('shield')">
+            🛡 Shield (50 Pi Credits)
+        </div>
+        <div class="pi-powerup" onclick="buyPowerup('multiplier')">
+            ✨ 2x Multiplier (100 Pi Credits)
+        </div>
+    </div>
+
+    <div id="pi-teaser">
+        🔥 Top 10 Players Will Earn 1000 Pi Coins Daily Starting Next Month!
+    </div>
+
+    <script>
+        // Pi SDK Initialization
+        Pi.init({ version: "2.0", sandbox: true })
+            .then(() => Pi.authenticate())
+            .then(authResult => {
+                localStorage.setItem('piUser', JSON.stringify(authResult.user));
+            });
+
+        // Game Core
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let score = 0;
+        let gameSpeed = 3;
+        let obstacles = [];
+        
+        // Player movement
+        document.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            playerY = e.clientY - rect.top - 20;
+        });
+
+        // Game loop
+        function update() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw player
+            ctx.fillStyle = var(--pi-primary);
+            ctx.fillRect(140, playerY, 20, 40);
+            
+            // Obstacle logic
+            if(Math.random() < 0.05) {
+                obstacles.push({x: 300, y: Math.random()*460});
+            }
+            
+            obstacles.forEach((obs, index) => {
+                ctx.fillStyle = var(--pi-secondary);
+                ctx.fillRect(obs.x, obs.y, 20, 40);
+                obs.x -= gameSpeed;
+                
+                if(detectCollision(obs)) gameOver();
+                if(obs.x < -20) updateScore(10);
+            });
+            
+            gameSpeed += 0.002;
+            requestAnimationFrame(update);
+        }
+
+        // Pi Integration Functions
+        async function buyPowerup(type) {
+            try {
+                const payment = await Pi.createPayment({
+                    amount: type === 'shield' ? 50 : 100,
+                    memo: `Purchase: ${type}`
+                });
+                applyPowerup(type);
+            } catch (error) {
+                console.error('Payment failed:', error);
+            }
+        }
+
+        function updateHighScores(score) {
+            const highscores = JSON.parse(localStorage.getItem('piHighscores') || [];
+            highscores.push({ score, timestamp: Date.now() });
+            localStorage.setItem('piHighscores', 
+                JSON.stringify(highscores.sort((a,b) => b.score - a.score).slice(0,10)));
+        }
+
+        // Start game
+        update();
+    </script>
+</body>
+</html>
